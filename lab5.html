@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buổi 5 - Bài 1: To-do List</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 480px;
+        margin: 40px auto;
+        padding: 0 16px;
+        background: #fafafa;
+      }
+      h1 {
+        text-align: center;
+      }
+      .input-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      #inputCongViec {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      #btnThem {
+        padding: 10px 16px;
+        background: #3498db;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #btnThem:hover {
+        background: #2980b9;
+      }
+      #trangThai {
+        text-align: center;
+        color: #555;
+        margin-bottom: 12px;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+        padding: 10px 14px;
+        margin: 8px 0;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+      }
+      li span.ten {
+        flex: 1;
+      }
+      li.done span.ten {
+        text-decoration: line-through;
+        color: #999;
+      }
+      li button {
+        margin-left: 10px;
+        background: #e74c3c;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      li button:hover {
+        background: #c0392b;
+      }
+      #btnXoaTatCa {
+        display: block;
+        margin: 20px auto 0;
+        background: none;
+        border: 1px solid #e74c3c;
+        color: #e74c3c;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #btnXoaTatCa:hover {
+        background: #e74c3c;
+        color: #fff;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Danh sách công việc</h1>
+    <div class="input-row">
+      <input
+        type="text"
+        id="inputCongViec"
+        placeholder="Nhập công việc mới..."
+      />
+      <button id="btnThem">Thêm</button>
+    </div>
+    <p id="trangThai"></p>
+    <ul id="danhSach"></ul>
+    <button id="btnXoaTatCa">Xóa tất cả</button>
+    <script>
+      // ----- Đọc / lưu danh sách từ localStorage -----
+      function layDanhSach() {
+        const duLieu = localStorage.getItem("congViecList");
+        return duLieu ? JSON.parse(duLieu) : [];
+      }
+      function luuDanhSach(danhSach) {
+        localStorage.setItem("congViecList", JSON.stringify(danhSach));
+      }
+      // ----- Render danh sách ra màn hình -----
+      function renderDanhSach() {
+        const danhSach = layDanhSach();
+        const ul = document.getElementById("danhSach");
+        ul.innerHTML = "";
+        danhSach.forEach(function (congViec, index) {
+          const li = document.createElement("li");
+          const span = document.createElement("span");
+          span.className = "ten";
+          span.textContent = congViec.ten;
+          li.appendChild(span);
+          if (congViec.hoanThanh) {
+            li.classList.add("done");
+          }
+          // click vào dòng để đánh dấu hoàn thành / bỏ hoàn thành
+          li.addEventListener("click", function () {
+            danhSach[index].hoanThanh = !danhSach[index].hoanThanh;
+            luuDanhSach(danhSach);
+            renderDanhSach();
+          });
+          // nút xóa từng việc
+          const btnXoa = document.createElement("button");
+          btnXoa.textContent = "Xóa";
+          btnXoa.addEventListener("click", function (e) {
+            e.stopPropagation(); // tránh bấm Xóa lại kích hoạt luôn sự kiện click của li
+            danhSach.splice(index, 1);
+            luuDanhSach(danhSach);
+            renderDanhSach();
+          });
+          li.appendChild(btnXoa);
+          ul.appendChild(li);
+        });
+
+        // Hiển thị "Còn X công việc chưa hoàn thành"
+        const conLai = danhSach.filter(function (cv) {
+          return !cv.hoanThanh;
+        }).length;
+        document.getElementById("trangThai").textContent =
+          danhSach.length === 0
+            ? "Chưa có công việc nào"
+            : "Còn " + conLai + " công việc chưa hoàn thành";
+      }
+      // ----- Thêm công việc mới -----
+      document.getElementById("btnThem").addEventListener("click", function () {
+        const input = document.getElementById("inputCongViec");
+        const tenCongViec = input.value.trim();
+        if (tenCongViec === "") {
+          alert("Vui lòng nhập tên công việc");
+          return;
+        }
+        const danhSach = layDanhSach();
+        danhSach.push({ ten: tenCongViec, hoanThanh: false });
+        luuDanhSach(danhSach);
+        input.value = "";
+        renderDanhSach();
+      });
+      // Cho phép nhấn Enter để thêm nhanh
+      document
+        .getElementById("inputCongViec")
+        .addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            document.getElementById("btnThem").click();
+          }
+        });
+      // ----- Xóa tất cả (có xác nhận trước khi xóa) -----
+
+      document
+        .getElementById("btnXoaTatCa")
+        .addEventListener("click", function () {
+          if (confirm("Bạn có chắc muốn xóa toàn bộ danh sách?")) {
+            localStorage.clear();
+            renderDanhSach();
+          }
+        });
+      // Render ngay khi trang load — dữ liệu cũ (nếu có) sẽ hiện lại
+      renderDanhSach();
+    </script>
+  </body>
+</html>
+
+Bài 2.
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buổi 5 - Bài 2: Ghi nhớ Theme + Geolocation</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 480px;
+        margin: 40px auto;
+        padding: 0 16px;
+        background: #ffffff;
+        color: #222;
+        transition:
+          background 0.3s,
+          color 0.3s;
+      }
+      /* Ở buổi này CHƯA học CSS Variables (sẽ học ở Buổi 11), nên tạm thời khai báo
+màu trực tiếp cho từng trạng thái class .dark trên <body> */
+      body.dark {
+        background: #1a1a2e;
+        color: #f0f0f0;
+      }
+      h1 {
+        text-align: center;
+      }
+
+      section {
+        background: #f5f6fa;
+        padding: 16px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      body.dark section {
+        background: #24243e;
+      }
+      button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #3498db;
+        color: #fff;
+        font-size: 15px;
+      }
+      button:hover {
+        background: #2980b9;
+      }
+      #ketQuaViTri {
+        margin-top: 12px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Cài đặt trang</h1>
+    <!-- ===== PHẦN 1: Ghi nhớ Theme sáng/tối bằng localStorage =====
+Đây là bước chuẩn bị trực tiếp cho kỹ thuật Dark/Light Mode hoàn chỉnh
+sẽ học ở Buổi 11 (khi đó sẽ dùng CSS Variables thay vì khai báo màu trực tiếp) -->
+    <section>
+      <h2>Giao diện</h2>
+      <p>Chọn theme hiển thị, lựa chọn sẽ được ghi nhớ cho lần truy cập sau.</p>
+      <button id="btnToggleTheme">🌙 Chế độ tối</button>
+    </section>
+    <!-- ===== PHẦN 2: Geolocation API =====
+Trình duyệt sẽ hỏi xin phép trước khi trả về vị trí -->
+    <section>
+      <h2>Vị trí của tôi</h2>
+      <button id="btnLayViTri">📍 Lấy vị trí của tôi</button>
+      <p id="ketQuaViTri"></p>
+    </section>
+
+    <script>
+      // ================= PHẦN 1: THEME =================
+      const btnToggle = document.getElementById("btnToggleTheme");
+      const body = document.body;
+      // Khi trang load: đọc theme đã lưu trước đó và áp dụng ngay
+      const themeDaLuu = localStorage.getItem("theme");
+      if (themeDaLuu === "dark") {
+        body.classList.add("dark");
+        btnToggle.textContent = "☀️ Chế độ sáng";
+      }
+      btnToggle.addEventListener("click", function () {
+        body.classList.toggle("dark");
+        if (body.classList.contains("dark")) {
+          localStorage.setItem("theme", "dark");
+          btnToggle.textContent = "☀️ Chế độ sáng";
+        } else {
+          localStorage.setItem("theme", "light");
+          btnToggle.textContent = "🌙 Chế độ tối";
+        }
+      });
+      // ================= PHẦN 2: GEOLOCATION =================
+      document
+        .getElementById("btnLayViTri")
+        .addEventListener("click", function () {
+          const ketQua = document.getElementById("ketQuaViTri");
+          if (!("geolocation" in navigator)) {
+            ketQua.textContent =
+              "Trình duyệt của bạn không hỗ trợ Geolocation.";
+            return;
+          }
+          ketQua.textContent = "Đang lấy vị trí...";
+          navigator.geolocation.getCurrentPosition(
+            function (viTri) {
+              const lat = viTri.coords.latitude.toFixed(5);
+              const lng = viTri.coords.longitude.toFixed(5);
+              ketQua.textContent = "Vĩ độ: " + lat + " — Kinh độ: " + lng;
+            },
+            function (loi) {
+              ketQua.textContent = "Không lấy được vị trí: " + loi.message;
+            },
+          );
+        });
+    </script>
+  </body>
+</html>
